@@ -1,0 +1,389 @@
+---
+title: "Tianyi Song-Assignment6"
+author: "Tianyi Song"
+date: "2023-12-11"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Getting sample data.
+merrordata <- read.csv("/Users/xiexinyi/Desktop/Wisconsin/2023 Fall/AAE636/Assignment6/merror_2023.csv")
+names(merrordata)
+head(merrordata)
+```
+
+
+1.a
+```{r}
+# Assuming you have a data frame called 'data' with columns 'ystar' and 'xstar'
+model <- lm(ystar ~ xstar, data = merrordata)
+
+# Display the regression summary
+summary(model)
+```
+The estimated coefficients \( \beta_0 \)=1 and \( \beta_1 \)=2 are close to the true values, the model is considered to be a good fit.
+
+
+1.b
+```{r}
+# Assuming you have vectors or columns named y1, y2, and ystar in your dataset
+# Compute measurement errors e1 and e2
+merrordata$e1 <- merrordata$y1 - merrordata$ystar
+merrordata$e2 <- merrordata$y2 - merrordata$ystar
+
+# Compute variances of the measurement errors
+var_e1 <- var(merrordata$e1)
+var_e1
+var_e2 <- var(merrordata$e2)
+var_e2
+
+# Compute correlation and Display the results
+correlation_e1 <- cor(merrordata$e1, merrordata$ystar)
+correlation_e1
+correlation_e2 <- cor(merrordata$e2, merrordata$ystar)
+correlation_e2
+```
+\(e_2\) exhibits a significantly higher variance compared to \(e_1\), indicating that the measurement errors associated with \(e_2\) are more widely dispersed than those associated with \(e_1\).
+
+The correlations between the errors and \(y^*\) are relatively minimal for both \(e_1\) and \(e_2\), suggesting a weak linear association between these errors and the actual values of the dependent variable.
+
+These correlations approaching zero are in line with the anticipation of random or independent measurement errors. This implies that the measurement errors \(e_1\) and \(e_2\) are not strongly connected to the true values of the dependent variable \(y^*\).
+
+
+1.c
+```{r}
+# Assuming you have vectors or columns named y1, y2, and xstar in your dataset
+# Regression of y1 on xstar
+model_y1 <- lm(y1 ~ xstar, data = merrordata)
+
+# Display the regression summary for y1
+summary(model_y1)
+
+# Extract the coefficient for the slope of xstar in the regression of y1
+coef_y1 <- summary(model_y1)$coefficients["xstar", "Estimate"]
+
+# Perform a hypothesis test for the slope coefficient of xstar in the regression of y1
+# Replace 'true_population_value_y1' with the true population parameter value for y1
+print(paste("Estimated coefficient for y1:", coef_y1))
+
+# Regression of y2 on xstar
+model_y2 <- lm(y2 ~ xstar, data = merrordata)
+
+# Display the regression summary for y2
+summary(model_y2)
+
+# Extract the coefficient for the slope of xstar in the regression of y2
+coef_y2 <- summary(model_y2)$coefficients["xstar", "Estimate"]
+
+# Perform a hypothesis test for the slope coefficient of xstar in the regression of y2
+# Replace 'true_population_value_y2' with the true population parameter value for y2
+print(paste("Estimated coefficient for y1:", coef_y2))
+```
+The slope coefficient (\(\beta_1\)) equals its true population parameter value (2). The estimated coefficient for xstar is significantly different from zero (\(p < 0.05\)). Therefore, based on this result, we reject the null hypothesis.
+
+The slope coefficient (\(\beta_1\)) is equivalent to its true population parameter value of 2. In line with the earlier regression, the estimated coefficient for xstar is significantly divergent from zero (\(p < 0.05\)). Consequently, we reject the null hypothesis for this regression as well.
+
+In both regressions, the estimated coefficients for xstar are notably distinct from zero, indicating a significant deviation from the assumed true population parameter value of 2. Consequently, the null hypothesis is rejected for both regressions.
+
+
+1.d
+In assessing the standard errors of the slope coefficients between Part C, where regressions involve noisy variables, and Part A, where the true value of the dependent variable is used:
+
+- **Part A (True Values)**:
+  - The standard error of the xstar coefficient is 0.04534 (from the regression of `ystar` on `xstar`).
+
+- **Part C (Noisy Variables)**:
+  - For `y1` on `xstar`, the standard error of the xstar coefficient is approximately 0.05807.
+  - For `y2` on `xstar`, the standard error of the xstar coefficient is approximately 0.07868.
+
+Comparison and Anticipations:
+
+The standard errors of the slope coefficients in Part C (utilizing noisy variables) are slightly greater than the standard error obtained in Part A (utilizing the true value of the dependent variable).
+
+This increase in standard errors when incorporating noisy variables in the regressions aligns with expectations. Measurement errors typically introduce additional variability into the observed data, leading to higher standard errors in the estimated coefficients. Therefore, observing slightly larger standard errors in the regressions of Part C compared to the regression in Part A, where the true values were utilized, is reasonable.
+
+
+1.e
+```{r}
+# Assuming you have vectors or columns named x1, x2, and xstar in your dataset
+# Compute measurement errors e1 and e2
+merrordata$epsilon1 <- merrordata$x1 - merrordata$xstar
+merrordata$epsilon2 <- merrordata$x2 - merrordata$xstar
+
+# Compute variances of the measurement errors
+var_epsilon1 <- var(merrordata$epsilon1)
+var_epsilon2 <- var(merrordata$epsilon2)
+var_epsilon1
+var_epsilon2
+
+# Compute correlation between e1/e2 and xstar
+correlation_epsilon1 <- cor(merrordata$epsilon1, merrordata$xstar)
+correlation_epsilon2 <- cor(merrordata$epsilon2, merrordata$xstar)
+correlation_epsilon1
+correlation_epsilon2
+```
+- The variability in the measurement errors, denoted as \(\epsilon_2\), is significantly greater than that of \(\epsilon_1\), indicating a broader dispersion of measurement errors for \(\epsilon_2\) in comparison to \(\epsilon_1\).
+
+- The correlations between the errors \(\epsilon_1\) and \(\epsilon_2\) with the true value of the regressor \(x^*\) are extremely close to zero. This suggests a feeble linear association between these errors and the actual values of the regressor.
+
+
+1.f
+```{r}
+# Assuming you have vectors or columns named ystar, x1, and x2 in your dataset
+# Regression of ystar on x1
+model_x1 <- lm(ystar ~ x1, data = merrordata)
+
+# Display the regression summary for ystar on x1
+summary(model_x1)
+
+# Extract the coefficient for the slope of x1 in the regression of ystar
+coef_x1 <- summary(model_x1)$coefficients["x1", "Estimate"]
+
+# Perform a hypothesis test for the slope coefficient of x1 in the regression of ystar
+# p-value less than 0.05 indicates rejection of the null hypothesis
+
+# Print the results of the hypothesis test for x1
+print(paste("Estimated coefficient for x1:", coef_x1))
+print(paste("p-value for x1:", coef_x1))
+
+
+# Regression of ystar on x2
+model_x2 <- lm(ystar ~ x2, data = merrordata)
+
+# Display the regression summary for ystar on x2
+summary(model_x2)
+
+# Extract the coefficient for the slope of x2 in the regression of ystar
+coef_x2 <- summary(model_x2)$coefficients["x2", "Estimate"]
+
+# Perform a hypothesis test for the slope coefficient of x2 in the regression of ystar
+# p-value less than 0.05 indicates rejection of the null hypothesis
+
+# Print the results of the hypothesis test for x2
+print(paste("Estimated coefficient for x1:", coef_x2))
+print(paste("p-value for x1:", coef_x2))
+```
+#For the regression of \(y^*\) on \(x_1\):
+- The estimated coefficient for \(x_1\) is \(1.33438\) with an exceedingly low \(p\)-value (\(< 2.2e-16\)), signifying a substantial relationship between \(x_1\) and \(y^*\).
+- Consequently, the null hypothesis asserting that the slope coefficient equals its true population parameter value (\(2\)) is firmly rejected.
+
+#For the regression of \(y^*\) on \(x_2\):
+- The estimated coefficient for \(x_2\) is \(0.68612\) with an extremely low \(p\)-value (\(< 2.2e-16\)), indicating a significant association between \(x_2\) and \(y^*\).
+- Analogous to the prior regression, the null hypothesis positing that the slope coefficient equals its true population parameter value (\(2\)) is decisively rejected.
+
+In both instances, the estimated coefficients markedly deviate from the true population parameter value of \(2\) in the regressions of \(y^*\) on both \(x_1\) and \(x_2\), as underscored by the remarkably low \(p\)-values.
+
+
+
+1.g
+In the class notes, we established the probability limit for the OLS estimator for the slope coefficient when classical measurement error is present in the regressor. Now, let's compute the variance of the true value of the regressor,$x^{*}$. By combining this variance with the two variances computed in Part E, we can discuss how each of the estimated slope coefficients in Part F compares with the expression for the probability limit of the slope coefficient.
+
+In the presence of classical measurement error in the regressor, comprehending the behavior of estimated slope coefficients hinges on essential considerations, particularly the variance of the true value of the regressor (\(x^*\)) and the variance of the measurement error in the regressor (\(\epsilon_k\)).
+
+The probability limit for the OLS estimator of the slope coefficient (\(\hat{\beta}_1\)) under classical measurement error is expressed as follows:
+$$
+\text{plim}(\hat{\beta}_1) = \frac{\sigma^2_{x^*}}{\sigma^2_{x^*} + \sigma^2_{\epsilon_k}}
+$$
+In this context:
+- \(\sigma^2_{x^*}\) represents the variance of the true value of the regressor (\(x^*\)).
+- \(\sigma^2_{\epsilon_k}\) denotes the variance of the measurement error in the regressor (\(\epsilon_k\)).
+
+Based on the outcomes in Part E:
+- Variance of \(\epsilon_1\): \(0.559026\)
+- Variance of \(\epsilon_2\): \(1.971954\)
+
+Now, amalgamating these variances with the variance of the true value of the regressor (\(\text{Var}(x^*)\)), we obtain:
+
+For the regression of \(y^*\) on \(x_1\):
+- Variance of \(x^*\) + Variance of \(\epsilon_1\): \(0.559026\)
+- This signifies the sum of the variance of the true regressor and the variance of the measurement error associated with \(x_1\).
+
+For the regression of \(y^*\) on \(x_2\):
+- Variance of \(x^*\) + Variance of \(\epsilon_2\): \(1.971954\)
+- This corresponds to the sum of the variance of the true regressor and the variance of the measurement error linked to \(x_2\).
+
+In comparing these combined variances with the expression for the probability limit of the slope coefficient in the presence of measurement error, it is anticipated that as the variances of the measurement errors increase relative to the variance of the true regressor, the precision of the estimated slope coefficients diminishes.
+
+
+1.h
+Expressing the probability limit of the OLS estimator for the slope coefficient when regressing the true dependent variable (\( y^* \)) on the noisy regressor (\( x_1 \)) is as follows:
+
+\[
+\text{plim}(\hat{\beta}_1) = \frac{\sigma^2_{x^*}}{\sigma^2_{x^*} + \sigma^2_{\epsilon_1}}
+\]
+
+In this equation:
+- \( \sigma^2_{x^*} \) denotes the variance of the true value of the regressor (\( x^* \)).
+- \( \sigma^2_{\epsilon_1} \) represents the variance of the measurement error associated with \( x_1 \).
+
+This formula elucidates the behavior of the OLS estimator (\( \hat{\beta}_1 \)) as the sample size tends to infinity, particularly in scenarios involving classical measurement error in the regressor. It illustrates how the precision of the estimated slope coefficient is influenced by the relative magnitudes of the variance of the true regressor and the variance of the measurement error for \( x_1 \).
+
+
+1.i
+Expressing the probability limit of the OLS estimator (\( \hat{\beta}_1 \)) for the slope coefficient when regressing the noisy regressor (\( x_2 \)) on the noisy regressor (\( x_1 \)) can be formulated as:
+
+\[
+\text{plim}(\hat{\beta}_1) = \frac{\sigma^2_{x_2}}{\sigma^2_{x_2} + \sigma^2_{\epsilon_1}}
+\]
+
+In this equation:
+- \( \sigma^2_{x_2} \) represents the variance of the noisy regressor (\( x_2 \)).
+- \( \sigma^2_{\epsilon_1} \) denotes the variance of the measurement error associated with \( x_1 \).
+
+This expression elucidates the behavior of the OLS estimator (\( \hat{\beta}_1 \)) as the sample size tends to infinity in scenarios where both \( x_1 \) and \( x_2 \) are noisy regressors with measurement error. It takes into consideration the variances of \( x_2 \) and the measurement error linked to \( x_1 \).
+
+
+1.j
+The ratio of the result in Part H to the result in Part I is:
+\[
+\frac{\text{plim}(\hat{\beta}_1 \text{ from regressing } y^* \text{ on } x_1)}{\text{plim}(\hat{\beta}_1 \text{ from regressing } x_2 \text{ on } x_1)}
+\]
+This ratio signifies the alteration in the probability limits of the OLS estimator for the slope coefficient when regressing the true dependent variable on a noisy regressor (\(x_1\)), in contrast to regressing one noisy regressor (\(x_2\)) on another noisy regressor (\(x_1\)). It captures the influence of employing different combinations of noisy regressors on the precision of the estimated slope coefficients.
+
+
+1.k
+*Step 1: Initial Stage (Instrumenting \(x_1\) with \(x_2\)):*
+Commence by regressing \(x_1\) on \(x_2\) in the initial stage to estimate the coefficient of \(x_2\) in predicting \(x_1\). This yields the initial stage coefficient (\(\hat{\gamma}\)), portraying the effectiveness of \(x_2\) in predicting \(x_1\).
+
+*Step 2: Predicted \(x_1\) (\(x_1^*\)):*
+Generate the anticipated values of \(x_1\) based on the initial stage regression. These predicted values are denoted as \(x_1^*\).
+
+*Step 3: Secondary Stage (Instrumental Variables Regression):*
+Proceed to the second stage, where the true dependent variable (\(y^*\)) is regressed on \(x_1^*\) (predicted \(x_1\)) and \(x_2\) to gauge the coefficient of \(x_1^*\). This produces the Instrumental Variables (IV) estimator of the impact of \(x_1\) on \(y^*\).
+
+*Step 4: Examine Results:*
+Review the summary of the second stage regression to obtain the IV estimator, which should align with the outcome in Part J when regressing \(y^*\) on \(x_1\).
+
+
+1.l
+```{r}
+first_stage <- lm(x1 ~ x2, data = merrordata)
+merrordata$x1_predicted <- predict(first_stage)
+summary(lm(ystar ~ x1_predicted + x2, data = merrordata))
+```
+The results reveal the Instrumental Variables (IV) estimator for the impact of \(x_1\) on \(y^*\). The coefficient of `x1_predicted` is approximately estimated to be 2.06372, accompanied by a remarkably low p-value, signifying a statistically significant relationship. In the first stage, the `x2` variable serves as an instrument, and its coefficient remains undefined due to singularities, which aligns with expectations in IV estimation.
+
+This affirms the accurate implementation of the method outlined in Part K within R, successfully yielding the IV estimator for the association between \(x_1\) and \(y^*\).
+
+
+
+
+
+2.i
+#What are the smallest and largest number of schools in a district? What is the average number of schools per district?
+```{r}
+elemdata <- read.csv("/Users/xiexinyi/Desktop/Wisconsin/2023 Fall/AAE636/Assignment6/elem94_95.csv")
+library(dplyr)
+
+# Assuming you have a data frame named districts_data
+# with a column named number_of_schools
+district_school_counts <- elemdata %>%
+  group_by(distid) %>%
+  summarise(num_schools = n())
+
+# Smallest number of schools
+smallest_num_schools <- min(district_school_counts$num_schools)
+
+# Largest number of schools
+largest_num_schools <- max(district_school_counts$num_schools)
+
+# Average number of schools
+average_num_schools <- mean(district_school_counts$num_schools)
+
+# Print the results
+cat("Smallest number of schools:", smallest_num_schools, "\n")
+cat("Largest number of schools:", largest_num_schools, "\n")
+cat("Average number of schools per district:", average_num_schools, "\n")
+```
+
+
+2.ii
+#What are the coeﬃcient and standard error on bs?
+```{r}
+model <- lm(lavgsal ~ bs + lenrol + lstaff + lunch, data = elemdata)
+summary(model)
+```
+The pooled OLS model yields the following coefficient and standard error for the variable `bs`:
+- Coefficient for `bs`: -0.5161289
+- Standard error for `bs`: 0.1097747
+
+
+2.iii
+#Obtain the standard errors that are robust to cluster correlation within district
+```{r}
+library(lmtest)
+library(sandwich)
+
+# Obtain cluster-robust standard errors
+coeftest(model, vcov = vcovHC(model, cluster = "distid"))
+```
+It is smaller. Under the application of cluster-robust standard errors, the t-statistic for bs is approximately -1.5292, and the corresponding p-value is 0.12637. This implies that the coefficient for bs no longer demonstrates statistical significance at the 0.05 significance level, given that the p-value (0.12637) exceeds 0.05. This observation suggests that the earlier outcome might have been influenced by potential correlations within districts and heteroskedasticity. The utilization of robust standard errors provides a more conservative estimate of statistical significance in this context.
+
+
+2.iv
+#Now is there much evidence for a salary-beneﬁts tradeoﬀ?
+```{r}
+data3 <- elemdata %>% filter(bs<c(.5))
+model2 <- lm(lavgsal ~ bs + lenrol + lstaff + lunch, data = data3)
+coeftest(model2, vcov = vcovHC(model2, cluster = "HC0")) 
+```
+The outcomes indicate that, following the exclusion of observations with a `bs` value greater than 0.5, the coefficient for `bs` is approximately -0.1865. However, the p-value associated with `bs` is now 0.21035, exceeding the conventional significance threshold of 0.05. This implies that, subsequent to data filtration, there is no longer robust evidence supporting a significant correlation between the student-teacher ratio (`bs`) and the logarithm of average teacher salary (`lavgsal`). The elevated p-value suggests that the coefficient for `bs` lacks statistical significance in this refined model.
+
+
+2.v
+#What do you conclude about the salary-beneﬁts tradeoﬀ?
+```{r}
+library(plm)
+fe.fit1 <- plm(lavgsal ~ bs + lenrol + lstaff + lunch,
+               data  = data3, 
+               index = c("distid","schid"),
+               model = "within")
+summary(fe.fit1)$coefficient
+coeftest(fe.fit1, vcov = vcovHC(fe.fit1, cluster = "group"))
+```
+The findings reveal that, following the incorporation of fixed effects and the exclusion of observations with `bs > 0.5`, the coefficient for the student-teacher ratio (`bs`) is estimated to be approximately -0.5234. The t-value for `bs` is -2.2962, with a corresponding p-value of 0.0218, which falls below the 0.05 threshold (significant at the 0.05 level).
+
+Hence, in this fixed effects model with cluster-robust standard errors, there is compelling evidence indicating a significant negative association between the student-teacher ratio (`bs`) and the logarithm of average teacher salary (`lavgsal`). This implies that, even after accounting for district-specific effects, an increase in the student-teacher ratio is linked to a decrease in average teacher salary, suggesting a tradeoff between salary and benefits.
+
+
+2.vi
+#Discuss the importance of allowing teacher compensation to vary systematically across districts via a district ﬁxed eﬀect.
+When limiting the estimation to cases where `bs` is less than or equal to 0.5, the pooled OLS yields a relatively small (in absolute value) and statistically insignificant estimate. However, upon introducing a district fixed effect, which eliminates districts with only one school, the estimate becomes substantially larger and statistically distinct from zero. At the 5% significance level, we reject the null hypothesis (\( \beta_{bs} = -1 \)) in favor of the two-sided alternative, indicating evidence of a tradeoff between salary and benefits.
+
+The inclusion of district effects likely captures the reality that certain districts offer higher salaries and increased benefits for reasons not captured by the limited set of controls (enrollment, staff per students, poverty rate). Once we account for systematic variations across districts, the tradeoff becomes apparent. Essentially, the fixed effects estimate is derived from the variability in salary/benefits packages across schools within districts. One plausible explanation for the existence of different compensation packages within districts is the variation in teacher age distributions across these districts.
+
+
+
+
+
+
+
+
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
