@@ -1,0 +1,457 @@
+---
+title: "Tianyi Song-636 Assignment5"
+author: "Tianyi Song"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=T, include=FALSE}
+## 0. General setups as usual
+## References: https://sites.google.com/site/econometricsacademy/econometrics-models/panel-data-models;
+###############https://bookdown.org/ccolonescu/RPoE4/heteroskedasticity.html.
+
+##Set your own directory
+rm(list=ls())
+library(haven)
+library(dplyr)
+library(psych)
+library(foreign)
+library(data.table)
+library(knitr)
+library(ggplot2)
+
+library(lmtest)  #for coeftest() and bptest().
+library(broom)   #for glance() and tidy()
+library(car)     #for hccm() robust standard errors
+library(RCurl)   # For the robust SE method 1
+library(sandwich)
+#install.packages("plm")
+library(plm)     # this package is for panel regression
+```
+
+```{r}
+# Getting sample data.
+wagedata <- read.dta("/Users/jesmyn/Downloads/cps_extract_2003.dta")
+names(wagedata)
+head(wagedata)
+```
+
+0.a
+#Create a variable that is the log of annual earnings.
+```{r}
+# Create a variable for the log of annual earnings
+wagedata$log_earnings <- log(wagedata$earnings)
+```
+
+1.a
+#Plot the data with earnings on the vertical axis and education on the horizontal axis.
+```{r}
+plot(wagedata$earnings~wagedata$educ,
+     xlab="Education",  ylab="Earnings",
+     main = "How Earnings varies across education levels")
+```
+Analyzing the scatter plot depicting annual earnings based on education, it seems evident that the variability in earnings is not uniform across all education levels. Heteroskedasticity occurs when the variability of the residuals (the differences between the observed and predicted values) is not constant across all levels of the independent variable(s) in a regression model. In the context of this analysis, heteroskedasticity would mean that the spread or dispersion of log earnings values is not consistent across different levels of education.
+
+The relationship between the variance of earnings and the level of education is increasing variance and non-linear relationship.There might be a non-linear relationship between education and the variance of earnings. For example, the variance could be higher for individuals with intermediate levels of education, and then decrease or increase for higher education levels.
+
+
+1.b
+```{r}
+# First you need to run the regression and get the residuals
+#summary(wagedata$ed)
+olsfit   <- lm(earnings ~ educ, data = wagedata)  # run regression
+residual <- residuals(olsfit)                # get residuals
+
+# Plot
+plot(residual~wagedata$ed,
+     xlab="Education",  ylab="Residuals",
+     main = "How residuals varies across education levels")
+```
+There is no distinct funnel shape indicative of an increase or decrease in variance with higher levels of education. The spread of residuals appears relatively consistent across various education levels.
+
+While there are noticeable outliers, particularly at the higher end of the education scale, the presence of outliers alone does not necessarily imply heteroskedasticity. The residuals exhibit a seemingly random distribution around the zero line without any discernible systematic pattern that correlates with the level of education. This randomness is indicative of homoskedasticity.
+
+In light of these observations, there is a lack of compelling visual evidence supporting the presence of heteroskedasticity in the data based solely on this plot.
+
+
+1.c
+```{r}
+# First you need to run the regression and get the residuals
+#summary(wagedata$ed)
+olsfit   <- lm(earnings ~ educ, data = wagedata)  # run regression
+residual <- residuals(olsfit)                # get residuals
+
+# Plot
+plot(residual~wagedata$ed,
+     xlab="Earnings",  ylab="Residuals",
+     main = "How residuals varies across education levels")
+```
+Heteroskedasticity does not appear evident, and the pattern resembles the findings in Part B. This similarity may be attributed to the substantial relationship between the predicted earnings values and the level of education, indicating that education plays a significant role as a predictor in your model.
+
+
+1.d
+```{r}
+a <- 0.05  # alpha = 0.05 level of significance
+olsfit <- lm(earnings ~ educ, data = wagedata)   # 1. run regression: 
+residual <- residuals(olsfit)               # 2. get residuals
+residual.sq <- resid(olsfit)^2              # 3. get squared residuals
+# 4. Regress the squared residuals on the regressors from the model
+residual.regression <- lm(residual.sq ~ educ, data=wagedata)
+F.stat <- summary(residual.regression)$fstatistic["value"]
+
+n <- dim(wagedata)[1]
+k <- 1                                      # 4. Number of the regressors
+F.critical <- qf(1-a, k, n-k-1) # get critical value
+F.stat
+F.critical
+```
+Here F statistic is greater than the critival value so we reject the null hypothesis that the error terms are homoskedastic.
+```{r}
+# This is an automated BP test which gives the same result
+library(lmtest) # install this if you haven't!
+bptest(olsfit)
+```
+Look at the p-value: 7.96e-06 < 0.05 --> reject the null hypothesis.
+
+
+1.e
+```{r}
+# 1. Compute LM statistic
+Lagrange.stat <- n*summary(residual.regression)$r.squared
+# 2. Get Chi-sq critical value
+k<- 1 # number of regressors
+chi.critical  <- qchisq(1-a, k)
+# 3. Compute corresponding p-value
+pval.chi      <- 1-pchisq(Lagrange.stat,k)
+Lagrange.stat
+chi.critical
+pval.chi
+```
+Again, test stat is bigger than critical value and reject the null.
+
+
+1.f
+```{r}
+# Very simple, just do the following
+coeftest(olsfit, vcov = vcovHC(olsfit, cluster = "HC0"))
+```
+```{r}
+# This is the old result
+summary(olsfit)$coefficients
+```
+Notice that corrected standard errors are larger.The corrected standard error for \( \hat{\alpha}_1 \) using White's heteroskedasticity-consistent method is 354.34.
+
+The initial standard error from the model estimation prior to applying White's method is not explicitly presented in your output. However, you can assess the impact by comparing the robust standard error with the original standard error. If the robust standard error is larger post White's method application, it suggests the presence of heteroskedasticity in the residuals and implies that the ordinary least squares (OLS) standard errors were underestimated.
+
+The t-statistic for \( \hat{\alpha}_1 \) subsequent to applying White's method is 13.391, indicating a remarkably high value and implying a significant association between education and earnings. It is advisable to juxtapose this t-statistic with the t-statistic obtained from the original model estimation. A potential decrease in the t-statistic is anticipated since robust standard errors are generally larger, thereby diminishing the t-statistic value. However, even if the t-statistic decreases, as long as it remains above the critical value (typically around 1.96 for a 95% confidence level with a large sample size), the coefficient retains its statistical significance.
+
+
+1.g
+Suppose the following is true:
+$$Var(u_i|Education_i) = \sigma^2_i = \sigma^2 \cdot Education_i$$
+```{r}
+# 1. Make weight variable
+wagedata <- wagedata %>% mutate(weight.educ = 1/educ)
+ # check if there are rows with education = 0, which will have undefined weight
+nrow(wagedata %>% filter(educ==0)) 
+# In this case, there is none, but if there are, you have to exclude those observations
+
+wls.fit1 <- lm(earnings ~ educ, 
+               data = wagedata,
+               weights = weight.educ, 
+               subset = (educ!=0))
+summary(wls.fit1)
+```
+The (WLS) estimate for \( \alpha_1 \) is noticeably lower compared to the OLS estimate. This implies that, upon addressing heteroskedasticity through the application of weights in WLS, the influence of education on earnings is evaluated to be less significant than indicated by the OLS estimate.
+
+The standard error derived from WLS estimation is smaller than the standard error obtained from OLS estimation. This outcome aligns with expectations since WLS adjusts for the non-constant variance in errors associated with different levels of education, leading to a more precise estimate of the coefficient's standard error.
+
+The observation of smaller standard errors with WLS is in line with the notion that WLS offers more efficient estimates when dealing with heteroskedasticity. Given that the form of heteroskedasticity was known and specified as proportional to the square of the education level, WLS appropriately weighted the observations to accommodate the non-constant variance. Hence, it is anticipated to find smaller standard errors with WLS in such a scenario.
+
+This result underscores that when the correct model of heteroskedasticity is known and employed in WLS, it has the potential to yield more dependable estimates (potentially with lower standard errors) compared to OLS, which assumes constant variance across all observations.
+
+
+1.h
+Suppose the following is true:
+$$Var(u_i|Education_i) = \sigma^2_i = \sigma^2 \cdot exp(\delta_0 + \delta_1Education_i)$$
+```{r}
+# First you need to run the regression and get the residuals
+olsfit   <- lm(earnings ~ exper + weeks + educ, data = wagedata)  # run regression
+residual <- residuals(olsfit)                            # get residuals
+residual.sq <- resid(olsfit)^2                           # get squared residuals
+g <- log(residual.sq)                                    # squared log(squared residuals)
+gfit  <- lm(g ~ educ,data = wagedata)                      # regress g on regressors
+h.hat <- exp(fitted(gfit))                               # exp(g_hat)
+fgls.fit <- lm(earnings~educ, data=wagedata, weights = 1/h.hat) # run regressor on weights = 1/h_hat
+summary(fgls.fit)
+```
+
+
+
+1.i
+
+```{r}
+# Transform the dataset by adding the log of earnings
+transformed_data <- wagedata %>%
+  mutate(log_earnings = log(earnings))
+
+# Estimate the model
+model <- lm(log_earnings ~ educ, data = transformed_data)
+
+# Save the residuals
+residuals <- residuals(model)
+
+# Plot the residuals against education
+plot(transformed_data$educ, residuals,
+     xlab = "Education", ylab = "Residuals",
+     main = "Residuals vs. Education")
+```
+
+Based on this plot, there is no apparent visual indication of heteroskedasticity. A discernible pattern of either an expanding or contracting dispersion of residuals with changes in education is not evident. The variability appears relatively uniform across various levels of education.
+
+
+1.j
+```{r}
+# Fit the model for the log of earnings
+model <- lm(log(earnings) ~ educ, data = wagedata)
+
+# Perform the Breusch-Pagan test
+bp_test <- bptest(model)
+
+# Output the results of the test
+print(bp_test)
+```
+The result from the Breusch-Pagan test provided in the image indicates a BP statistic of 1.4623 with 1 degree of freedom and a p-value of 0.2266.
+
+Based on this result, at the 5% level of significance (α = 0.05), we fail to reject the null hypothesis of homoskedasticity because the p-value is greater than 0.05. This means that there is no statistically significant evidence of heteroskedasticity in the residuals from your regression model, according to the Breusch-Pagan test. Thus, based on this test, the residuals can be considered homoskedastic.
+
+
+2.Wooldridge equations (8.28) and (8.29)
+2.a
+Given that the error terms are homoskedastic and uncorrelated, the variance of \( \bar{u}_i \) can be calculated as follows:
+
+\[ \text{Var}(\bar{u}_i) = \text{Var}\left(\frac{1}{m_i} \sum_{e=1}^{m_i} u_{i,e}\right) \]
+
+Since the error terms are independent and each has a variance of \( \sigma^2 \), and because variance is a linear operator with constants taken out squared, we have:
+
+\[ \text{Var}(\bar{u}_i) = \frac{1}{m_i^2} \sum_{e=1}^{m_i} \text{Var}(u_{i,e}) \]
+\[ \text{Var}(\bar{u}_i) = \frac{1}{m_i^2} \sum_{e=1}^{m_i} \sigma^2 \]
+\[ \text{Var}(\bar{u}_i) = \frac{1}{m_i^2} \cdot m_i \cdot \sigma^2 \]
+\[ \text{Var}(\bar{u}_i) = \frac{\sigma^2}{m_i} \]
+
+Therefore, the variance of the average error within a firm is indeed \( \sigma^2 / m_i \). This indicates that by averaging the errors within a firm, the variance is reduced by a factor equivalent to the number of employees within the firm. The decrease in variance is a result of the averaging process, effectively mitigating the impact of uncorrelated individual errors as they are summed.
+
+
+2.b
+The significance of the initial section is examined in the context of Weighted Least Squares (WLS) estimation utilizing data aggregated at the firm level. As the variance of the average error term within a firm is \( \sigma^2 / m_i \), during WLS, the weight assigned to observation \( i \) (representing a firm) becomes the reciprocal of this variance, directly proportional to the firm size \( m_i \). Consequently, larger firms (with more employees and, hence, a larger \( m_i \)) possess smaller variances in their average error terms. Consequently, these larger firms are accorded greater weight in the WLS regression due to the enhanced reliability of their data points, stemming from the averaging of a more extensive set of observations, which effectively diminishes the variance of the error term.
+
+In WLS, the utilization of weights addresses variations in variances among observations, where larger weights correspond to observati
+
+
+3.(Wooldridge Problem 8.7) Consider a model at the employee level
+3.a
+If \( \text{Var}(f_i) = \sigma_f^2 \), \( \text{Var}(\upsilon_{i,e}) = \sigma_\upsilon^2 \), and \( f_i \) and \( \upsilon_{i,e} \) are uncorrelated, then the variance of the composite error term \( u_{i,e} \) is:
+
+\[ \text{Var}(u_{i,e}) = \text{Var}(f_i + \upsilon_{i,e}) = \text{Var}(f_i) + \text{Var}(\upsilon_{i,e}) \]
+
+As \( f_i \) and \( \upsilon_{i,e} \) are uncorrelated, their covariances are zero, and their variances sum up. Therefore:
+\[ \text{Var}(u_{i,e}) = \sigma_f^2 + \sigma_\upsilon^2 \]
+
+
+3.b
+Now consider the covariance between \( u_{i,e} \) and \( u_{i,g} \) for \( e \neq g \). Since \( \upsilon_{i,e} \) and \( \upsilon_{i,g} \) are uncorrelated, their covariance is zero. The covariance of \( u_{i,e} \) and \( u_{i,g} \) is:
+
+\[ \text{Cov}(u_{i,e}, u_{i,g}) = \text{Cov}(f_i + \upsilon_{i,e}, f_i + \upsilon_{i,g}) \]
+
+Expanding the covariance using the linearity property and knowing that the covariance of \( \upsilon_{i,e} \) and \( \upsilon_{i,g} \) is zero:
+
+\[ \text{Cov}(u_{i,e}, u_{i,g}) = \text{Cov}(f_i, f_i) + \text{Cov}(f_i, \upsilon_{i,g}) + \text{Cov}(\upsilon_{i,e}, f_i) + \text{Cov}(\upsilon_{i,e}, \upsilon_{i,g}) \]
+
+Since \( \text{Cov}(f_i, \upsilon_{i,g}) = \text{Cov}(\upsilon_{i,e}, f_i) = 0 \) and \( \text{Cov}(\upsilon_{i,e}, \upsilon_{i,g}) = 0 \), the only remaining term is \( \text{Cov}(f_i, f_i) \), which is the variance of \( f_i \):
+
+\[ \text{Cov}(u_{i,e}, u_{i,g}) = \text{Var}(f_i) = \sigma_f^2 \]
+
+In this context, where we leverage the property that the covariance of a random variable with itself is equivalent to its variance, along with the assumptions that \( f_i \), \( \upsilon_{i,e} \), and \( \upsilon_{i,g} \) are pairwise uncorrelated.
+
+
+
+3.c
+To determine the variance of \( \bar{u}_i \), the mean of the composite errors within a firm:
+
+Let \( \bar{u}_i = \frac{1}{m_i} \sum_{e=1}^{m_i} u_{i,e} \), where \( u_{i,e} = f_i + \upsilon_{i,e} \).
+
+As \( f_i \) is constant for all employees within firm \( i \), it remains unchanged when averaged since it comes out of the sum. The \( \upsilon_{i,e} \) terms, being uncorrelated and having the same variance \( \sigma_\upsilon^2 \), aggregate to a variance of \( \sigma_\upsilon^2 / m_i \) due to the averaging process. Therefore, the variance of \( \bar{u}_i \) is:
+
+\[ \text{Var}(\bar{u}_i) = \text{Var}(f_i) + \frac{1}{m_i^2} \sum_{e=1}^{m_i} \text{Var}(\upsilon_{i,e}) \]
+\[ \text{Var}(\bar{u}_i) = \sigma_f^2 + \frac{1}{m_i^2} \cdot m_i \cdot \sigma_\upsilon^2 \]
+\[ \text{Var}(\bar{u}_i) = \sigma_f^2 + \frac{\sigma_\upsilon^2}{m_i} \]
+
+
+3.d
+The standard approach to weighting overlooks the variability in the firm-specific effect, represented as \( \sigma_f^2 \). Consequently, the commonly used, but flawed, weight function is expressed as 1/h1= mi. To derive a more accurate weighting function, we consider the variance as outlined in (iii): \( \text{Var}(u_{i}) = \sigma_f^2*(h_i) \). However, determining the appropriate weights necessitates knowledge or estimation of the ratio \( \frac{\sigma_\upsilon^2}{\sigma_f^2} \). 
+Although this estimation is feasible, it is not the focus of this discussion. It's important to note that the typical weighting method is not accurate. In scenarios where mi values are substantial, or the ratio \( \frac{\sigma_\upsilon^2}{\sigma_f^2} \) is relatively small, emphasizing the firm effect over the individual-specific effect, the correct weights approximate a constant value. Therefore, assigning significant weights to larger firms may often be misleading.
+
+
+4.a
+```{r}
+# Getting data.
+MURDERdata <- read.dta('/Users/jesmyn/Downloads/MURDER.dta')
+names(MURDERdata)
+head(MURDERdata)
+```
+
+```{r}
+
+
+# Assuming you have a data frame named 'data' with columns: mrdrte, exec, unem, year, and state
+
+# Create a panel data model
+model <- plm(mrdrte ~ cexec + unem, data = MURDERdata, index = c("state", "year"), model = "random")
+
+# View the summary of the model
+summary(model)
+```
+This code estimates a random effects model for the panel data. In the output, you can check the sign and significance of the coefficients for `exec` and `unem`.
+
+The sign of \( \beta_1 \) (coefficient for `exec`) will indicate the direction of the effect of past executions on murder rates. If it is negative and statistically significant, it suggests a deterrent effect.
+
+The sign of \( \beta_2 \) (coefficient for `unem`) will indicate the direction of the effect of unemployment on murder rates. The actual sign will depend on your data and theory.
+
+Inspect the output, particularly the coefficients' estimates and their p-values, to draw conclusions about the signs and significance of the coefficients in your model.
+
+
+4.b
+```{r}
+# Filter data for the years 1990 and 1993
+data_filtered <- MURDERdata[MURDERdata$year %in% c(90, 93), ]
+
+# Pooled OLS estimation
+pooled_ols <- lm(mrdrte ~ exec + unem, data = data_filtered)
+
+# Check for deterrent effect by examining the sign and significance of 'exec'
+summary(pooled_ols)
+```
+According to the analysis derived from this model, utilizing data from 1990 and 1993, there is no detectable deterrent impact of executions on murder rates. However, the data does reveal a notable positive correlation between the rates of unemployment and occurrences of murder.
+
+
+4.c
+```{r}
+# Convert data to a panel data frame
+pdata <- pdata.frame(MURDERdata, index = c("state", "year"))
+
+# Estimate the fixed effects model using first differencing
+fe_model <- plm(mrdrte ~ exec + unem, data = pdata, model = "fd")
+
+# Get the summary of the fixed effects model
+summary(fe_model)
+```
+In summary, the results from this analysis indicate that executions do not demonstrably deter murders, and the model in question does not seem to align well with the data.
+
+
+4.d
+#Compute the heteroskedasticity-robust standard error for the estimation in part (ii).
+```{r}
+# Assume 'model' is your regression model object
+robust_se <- sqrt(diag(vcovHC(pooled_ols, type = "HC1")))
+
+# Compute heteroskedasticity-robust standard errors
+coeftest(pooled_ols, vcov = vcovHC(pooled_ols, type = "HC1"))
+```
+Calculating standard errors that are robust to heteroskedasticity is a widely used method to adjust for the non-uniform variance in the error terms of a regression model. In statistical software, this adjustment is typically achieved by selecting the 'robust' option during the model estimation process.
+
+
+4.e
+```{r}
+# Summarize the total number of executions per state for the years 1991, 1992, and 1993
+state_executions <- aggregate(exec ~ state, data = MURDERdata[MURDERdata$year %in% c(91, 92, 93), ], sum)
+
+# Identify the state with the highest number of executions during these years
+max_exec_state <- state_executions[which.max(state_executions$exec), ]
+
+# Display the state with the maximum executions
+max_exec_state
+
+# Sort the MURDERdata by the 'executions' column in descending order
+exec_data <- MURDERdata[order(-MURDERdata$exec), ]
+
+# Calculate the difference between the top two states in terms of executions
+difference <- MURDERdata$exec[1] - exec_data$exec[2]
+
+# Output the difference
+print(difference)
+```
+The presence of a negative result indicates that a greater number has been subtracted from a smaller one, contrary to what was anticipated.
+
+
+4.f
+```{r}
+# Remove Texas data from the dataset
+data_excluding_texas <- filter(MURDERdata, state != "TX")
+
+# Estimating a linear model using data from the year 1993
+model_fd <- lm(cmrdrte ~ cunem + cexec, data = data_excluding_texas, subset = (year == 93))
+summary(model_fd)
+
+# Calculating heteroskedasticity-robust standard errors for the model
+robust_standard_errors_fd <- coeftest(model_fd, vcov = vcovHC(model_fd, type = "HC0"))
+print(robust_standard_errors_fd)
+
+```
+The estimated value of the intercept is 0.412523, accompanied by a standard error of 0.194331. With a t-value of 2.1228, this suggests a significant difference from zero at the 0.05 level, as indicated by an asterisk.
+
+Regarding the exec variable, it exhibits a negative coefficient and its standard error is 0.0766. With the corresponding t-value and p-value, this indicates a lack of statistical significance to refute the hypothesis that the coefficient is zero at conventional significance levels.
+
+Similarly, the unem variable shows a negative coefficient. Its t-value stands at -0.4940, and the p-value is 0.62358, also failing to reach statistical significance by conventional standards.
+
+
+4.g
+```{r}
+# Load the plm library
+library(plm)
+
+# Estimating a two-way fixed effects model on the MURDERdata dataset
+# This model controls for both state and year fixed effects
+two_way_fe_model <- plm(mrdrte ~ exec + unem, 
+                        data = MURDERdata, 
+                        index = c("state", "year"), 
+                        model = "within", 
+                        effect = "twoways")
+
+# Display the summary statistics of the estimated two-way fixed effects model
+model_summary <- summary(two_way_fe_model)
+print(model_summary)
+
+```
+
+
+
+
+
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
